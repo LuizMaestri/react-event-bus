@@ -1,46 +1,46 @@
 # React Event Bus
 
-Uma biblioteca React leve para despacho e escuta de eventos nativos, escrita em TypeScript. Substitui inteligentemente o uso verboso do `document.addEventListener` por APIs otimizadas para o ecossistema do React mantendo total isolamento e Typescript estrito.
+A lightweight React library for dispatching and listening to native events, written in TypeScript. It intelligently replaces the verbose use of `document.addEventListener` with APIs optimized for the React ecosystem, maintaining complete isolation and strict TypeScript typing.
 
-## Vantagens
-- **100% Typado**: Eventos mapeados são estritamente detectados para evitar digitação errada e facilitar o Auto-Complete.
-- **Hook-Friendly**: Mantém a referência aos seus `callbacks` de componentes atualizada, evitando re-inscrições de eventos que sobrecarregam efeitos no React (evita gatilhos de `useEffect` desnecessários).
-- **Sem DOM Poluído**: Usa instâncias privadas da API nativa `EventTarget` em vez da janela ou documento global, evitando sobreposição de eventos de diferentes origens.
+## Advantages
+- **100% Typed**: Mapped events are strictly typed to prevent typos and enhance Auto-Complete.
+- **Hook-Friendly**: Keeps your component `callbacks` references up-to-date, preventing event re-subscriptions that overload React effects (avoids unnecessary `useEffect` triggers).
+- **No DOM Pollution**: Uses private instances of the native `EventTarget` API instead of the global window or document, preventing event overlapping from different origins.
 
 ---
 
-## 💻 Como Usar
+## 💻 How to Use
 
-### 1. Definindo suas tipagens e eventos
-Comece definindo um tipo único que dita os mapeamentos do nome do seu evento direto para o que ele trafega (a sua carga / payload).
+### 1. Defining your types and events
+Start by defining a single type that dictates the mapping of your event name directly to its payload.
 
 ```typescript
 // types.ts
 export type AppEvents = {
-  // Um evento com payload detalhado:
+  // An event with a detailed payload:
   'user:login': { username: string; id: number };
 
-  // Um evento simples "gatilho" sem dados:
+  // A simple "trigger" event without data:
   'ui:toggleSidebar': void;
 };
 ```
 
 ---
 
-### Abordagem A: Instância Global (Singleton)
+### Approach A: Global Instance (Singleton)
 
-Recomendado para casos de uso gerais de eventos soltos onde múltiplos locais do sistema sem ligação no mesmo Provider precisam interagir.
+Recommended for general use cases of loose events where multiple parts of the system, not bound to the same Provider, need to interact.
 
 ```tsx
 // src/events.ts
-import { createEventBus } from 'react-event-bus';
+import { createEventBus } from '@luizmaestri/react-event-bus';
 import { AppEvents } from './types';
 
-// O export entrega as ferramentas amarradas a um escopo global isolado!
+// The export provides the tools bound to an isolated global scope!
 export const { useEvent, publish } = createEventBus<AppEvents>();
 ```
 
-**Escutando em um Componente React:**
+**Listening in a React Component:**
 ```tsx
 import React, { useState } from 'react';
 import { useEvent } from './events';
@@ -49,16 +49,16 @@ export const WelcomeHeader = () => {
   const [user, setUser] = useState<string | null>(null);
 
   useEvent('user:login', (data) => {
-    // O seu editor (IDE) vai saber automaticamente que `data` 
-    // possui a propridade `username` e `id`!
-    setUser(`Bem-vindo, ${data.username}!`);
+    // Your editor (IDE) will automatically know that `data` 
+    // has the properties `username` and `id`!
+    setUser(`Welcome, ${data.username}!`);
   });
 
-  return <header>{user || 'Visitante'}</header>;
+  return <header>{user || 'Guest'}</header>;
 };
 ```
 
-**Publicando um evento:**
+**Publishing an event:**
 ```tsx
 import { publish } from './events';
 
@@ -73,12 +73,12 @@ export const LoginForm = () => {
 
 ---
 
-### Abordagem B: Scoped via Context API
+### Approach B: Scoped via Context API
 
-Ideal para widgets isolados, microfrontends, ou partes que não deveriam vazar eventos globalmente para outras áreas do aplicativo caso houver instâncias simultâneas na mesma tela.
+Ideal for isolated widgets, micro-frontends, or parts that shouldn't leak events globally to other areas of the application if there are simultaneous instances on the same screen.
 
 ```tsx
-import { createEventBusContext } from 'react-event-bus';
+import { createEventBusContext } from '@luizmaestri/react-event-bus';
 import { AppEvents } from './types';
 
 export const { 
@@ -87,8 +87,8 @@ export const {
     usePublish 
 } = createEventBusContext<AppEvents>();
 
-// 1. Abrace seu sub-app com o Provider. Todos dentro dele 
-// vão enxergar o mesmo canal de eventos.
+// 1. Wrap your sub-app with the Provider. Everyone inside it 
+// will see the same event channel.
 export const Dashboard = () => {
     return (
         <EventBusProvider>
@@ -98,7 +98,7 @@ export const Dashboard = () => {
     )
 }
 
-// 2. Acesse via hooks restritos ao Context
+// 2. Access via hooks restricted to Context
 const Header = () => {
     useEvent('ui:toggleSidebar', () => {
         console.log('Sidebar Toggled!!');
@@ -114,48 +114,48 @@ const Actions = () => {
 
 ---
 
-### 3. Classe Pura (Baixo Nível)
+### 3. Pure Class (Low Level)
 
-Para bibliotecas puras Vanilla JS conversarem com seu barramento de eventos abstraindo o React completamente:
+For pure Vanilla JS libraries to talk to your event bus by abstracting React completely:
 
 ```typescript
-import { EventBus } from 'react-event-bus';
+import { EventBus } from '@luizmaestri/react-event-bus';
 
 const coreBus = new EventBus<AppEvents>();
 
-// Inscreve
+// Subscribe
 const unsubscribe = coreBus.subscribe('user:login', (data) => {
     console.log(data.username);
 });
 
-// Emite
+// Emit
 coreBus.publish('user:login', { username: 'Luiz', id: 42 });
 
-// Limpa memória
+// Clean memory
 unsubscribe();
 ```
 
 ---
 
-### 🚀 Uso Avançado (Filtros e Debounce)
+### 🚀 Advanced Usage (Filters and Debounce)
 
-Tanto o \`useEvent\` quanto o método \`subscribe()\` nativo aceitam um terceiro argumento de opções para otimizar a performance da sua renderização:
+Both `useEvent` and the native `subscribe()` method accept a third options argument to optimize your rendering performance:
 
 ```tsx
 import { useEvent } from './events';
 
 export const SearchAPI = () => {
     useEvent('search:queryChanged', (data) => {
-         console.log(`Só chegamos aqui depois que você parar de digitar por 300ms, e se a palavra for maior que 3 letras:`, data.term);
+         console.log(`We only get here after you stop typing for 300ms, and if the word is longer than 3 letters:`, data.term);
     }, {
-         // Opcional: Só executa se retornar true
+         // Optional: Only executes if it returns true
          filter: (data) => data.term.length >= 3,
          
-         // Opcional: Aguarda (debounce) os eventos pararem na origem pela quantidade de milissegundos abaixo
+         // Optional: Waits (debounce) for events to stop at the origin for the number of milliseconds below
          debounce: 300,
 
-         // Opcional: Nível de prioridade de execução (1 a 10). Padrão é 5.
-         // Um listener com prioridade 1 sempre executa antes de um com prioridade 5.
+         // Optional: Execution priority level (1 to 10). Default is 5.
+         // A listener with priority 1 always runs before one with priority 5.
          priority: 1 
     });
 
