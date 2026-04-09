@@ -1,6 +1,6 @@
 {
   "name": "@luizmaestri/react-event-bus",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Event Bus library for React",
   "type": "module",
   "main": "./dist/react-event-bus.umd.js",
